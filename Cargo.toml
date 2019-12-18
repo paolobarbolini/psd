@@ -9,7 +9,6 @@ repository = "https://github.com/chinedufn/psd"
 edition = "2018"
 
 [dependencies]
-failure = "0.1.5"
 
 [workspace]
 members = [
