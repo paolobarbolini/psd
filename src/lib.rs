@@ -5,7 +5,8 @@
 //!
 //! psd spec: https://www.adobe.com/devnet-apps/photoshop/fileformatashtml/
 
-#![deny(missing_docs)]
+// TODO: add missing docs
+// #![deny(missing_docs)]
 
 pub use crate::error::{ChannelError, DepthError, Error, HeaderError};
 pub use crate::psd_channel::{PsdChannelCompression, PsdChannelKind};
