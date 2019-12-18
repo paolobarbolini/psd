@@ -1,5 +1,5 @@
 use crate::sections::PsdCursor;
-use failure::{Error, Fail};
+use crate::{ChannelError, DepthError, Error, HeaderError};
 
 /// Bytes representing the string "8BPS".
 const EXPECTED_PSD_SIGNATURE: [u8; 4] = [56, 66, 80, 83];
@@ -40,27 +40,6 @@ pub struct FileHeaderSection {
     pub(in crate) color_mode: ColorMode,
 }
 
-/// Represents an malformed file section header
-#[derive(Debug, Fail)]
-pub enum FileHeaderSectionError {
-    #[fail(
-        display = "A file section header is comprised of 26 bytes, you provided {} bytes.",
-        length
-    )]
-    IncorrectLength { length: usize },
-    #[fail(
-        display = r#"The first four bytes (indices 0-3) of a PSD must always equal [56, 66, 80, 83],
-         which in string form is '8BPS'."#
-    )]
-    InvalidSignature {},
-    #[fail(
-        display = r#"Bytes 5 and 6 (indices 4-5) must always be [0, 1], Representing a PSD version of 1."#
-    )]
-    InvalidVersion {},
-    #[fail(display = r#"Bytes 7-12 (indices 6-11) must be zeroes"#)]
-    InvalidReserved {},
-}
-
 impl FileHeaderSection {
     /// Create a FileSectionHeader from the first 26 bytes of a PSD
     ///
@@ -72,28 +51,25 @@ impl FileHeaderSection {
 
         // File header section must be 26 bytes long
         if bytes.len() != 26 {
-            return Err(FileHeaderSectionError::IncorrectLength {
-                length: bytes.len(),
-            }
-            .into());
+            return Err(HeaderError::IncorrectLength(bytes.len()).into());
         }
 
         // First four bytes must be '8BPS'
         let signature = cursor.read_4()?;
         if signature != EXPECTED_PSD_SIGNATURE {
-            return Err(FileHeaderSectionError::InvalidSignature {}.into());
+            return Err(HeaderError::InvalidSignature.into());
         }
 
         // The next 2 bytes represent the version
         let version = cursor.read_2()?;
         if version != EXPECTED_VERSION {
-            return Err(FileHeaderSectionError::InvalidVersion {}.into());
+            return Err(HeaderError::InvalidVersion.into());
         }
 
         // The next 6 bytes are reserved and should always be 0
         let reserved = cursor.read_6()?;
         if reserved != EXPECTED_RESERVED {
-            return Err(FileHeaderSectionError::InvalidReserved {}.into());
+            return Err(HeaderError::InvalidReserved.into());
         }
 
         // The next 2 bytes represent the channel count
@@ -148,21 +124,11 @@ pub enum PsdVersion {
 #[derive(Debug)]
 pub struct ChannelCount(u8);
 
-/// Represents an incorrect channel count
-#[derive(Debug, Fail)]
-pub enum ChannelCountError {
-    #[fail(
-        display = "Invalid channel count: {}. Must be 1 <= channel count <= 56",
-        channel_count
-    )]
-    OutOfRange { channel_count: u8 },
-}
-
 impl ChannelCount {
     /// Create a new ChannelCount
-    pub fn new(channel_count: u8) -> Result<ChannelCount, Error> {
+    pub fn new(channel_count: u8) -> Result<ChannelCount, ChannelError> {
         if channel_count < 1 || channel_count > 56 {
-            return Err(ChannelCountError::OutOfRange { channel_count }.into());
+            return Err(ChannelError::OutOfRange(channel_count));
         }
 
         Ok(ChannelCount(channel_count))
@@ -172,15 +138,6 @@ impl ChannelCount {
     pub fn count(&self) -> u8 {
         self.0
     }
-}
-
-/// Represents an incorrect channel count
-#[derive(Debug, Fail)]
-pub enum PsdSizeError {
-    #[fail(display = "Invalid width: {}. Must be 1 <= width <= 30,000", width)]
-    WidthOutOfRange { width: u32 },
-    #[fail(display = "Invalid height: {}. Must be 1 <= height <= 30,000", height)]
-    HeightOutOfRange { height: u32 },
 }
 
 /// # [Adobe Docs](https://www.adobe.com/devnet-apps/photoshop/fileformatashtml/)
@@ -194,9 +151,9 @@ pub struct PsdHeight(pub(in crate) u32);
 
 impl PsdHeight {
     /// Create a new PsdHeight
-    pub fn new(height: u32) -> Result<PsdHeight, Error> {
+    pub fn new(height: u32) -> Result<PsdHeight, HeaderError> {
         if height < 1 || height > 30000 {
-            return Err(PsdSizeError::HeightOutOfRange { height }.into());
+            return Err(HeaderError::HeightOutOfRange(height));
         }
 
         Ok(PsdHeight(height))
@@ -214,9 +171,9 @@ pub struct PsdWidth(pub(in crate) u32);
 
 impl PsdWidth {
     /// Create a new PsdWidth
-    pub fn new(width: u32) -> Result<PsdWidth, Error> {
+    pub fn new(width: u32) -> Result<PsdWidth, HeaderError> {
         if width < 1 || width > 30000 {
-            return Err(PsdSizeError::WidthOutOfRange { width }.into());
+            return Err(HeaderError::WidthOutOfRange(width));
         }
 
         Ok(PsdWidth(width))
@@ -237,25 +194,15 @@ pub enum PsdDepth {
     ThirtyTwo = 32,
 }
 
-/// Represents an incorrect PSD depth
-#[derive(Debug, Fail)]
-pub enum PsdDepthError {
-    #[fail(display = "Depth {} is invalid. Must be 1, 8, 16 or 32", depth)]
-    InvalidDepth { depth: u8 },
-    #[fail(display = r#"Only 8 and 16 bit depths are supported at the moment.
-    If you'd like to see 1 and 32 bit depths supported - please open an issue."#)]
-    UnsupportedDepth,
-}
-
 impl PsdDepth {
     /// Create a new PsdDepth
-    pub fn new(depth: u8) -> Result<PsdDepth, Error> {
+    pub fn new(depth: u8) -> Result<PsdDepth, DepthError> {
         match depth {
             1 => Ok(PsdDepth::One),
             8 => Ok(PsdDepth::Eight),
             16 => Ok(PsdDepth::Sixteen),
             32 => Ok(PsdDepth::ThirtyTwo),
-            _ => Err(PsdDepthError::InvalidDepth { depth }.into()),
+            _ => Err(DepthError::InvalidDepth(depth)),
         }
     }
 }
@@ -282,19 +229,9 @@ pub enum ColorMode {
     Lab = 9,
 }
 
-/// Represents an incorrect color mode
-#[derive(Debug, Fail)]
-pub enum ColorModeError {
-    #[fail(
-        display = "Invalid color mode {}. Must be 0, 1, 2, 3, 4, 7, 8 or 9",
-        color_mode
-    )]
-    InvalidColorMode { color_mode: u8 },
-}
-
 impl ColorMode {
     /// Create a new ColorMode
-    pub fn new(color_mode: u8) -> Result<ColorMode, Error> {
+    pub fn new(color_mode: u8) -> Result<ColorMode, HeaderError> {
         match color_mode {
             0 => Ok(ColorMode::Bitmap),
             1 => Ok(ColorMode::Grayscale),
@@ -304,7 +241,7 @@ impl ColorMode {
             7 => Ok(ColorMode::Multichannel),
             8 => Ok(ColorMode::Duotone),
             9 => Ok(ColorMode::Lab),
-            _ => Err(ColorModeError::InvalidColorMode { color_mode }.into()),
+            _ => Err(HeaderError::InvalidColorMode(color_mode)),
         }
     }
 }

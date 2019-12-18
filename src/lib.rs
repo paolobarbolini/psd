@@ -7,6 +7,7 @@
 
 #![deny(missing_docs)]
 
+pub use crate::error::{ChannelError, DepthError, Error, HeaderError};
 pub use crate::psd_channel::{PsdChannelCompression, PsdChannelKind};
 pub use crate::sections::file_header_section::ColorMode;
 pub use crate::sections::file_header_section::PsdDepth;
@@ -18,10 +19,10 @@ use crate::sections::image_data_section::ChannelBytes;
 use crate::sections::image_data_section::ImageDataSection;
 use crate::sections::layer_and_mask_information_section::LayerAndMaskInformationSection;
 use crate::sections::MajorSections;
-use failure::Error;
 use std::cell::RefCell;
 use std::collections::HashMap;
 
+mod error;
 mod psd_channel;
 mod sections;
 

@@ -4,7 +4,7 @@ use crate::sections::image_data_section::ChannelBytes;
 use crate::sections::layer_and_mask_information_section::layer::LayerRecord;
 use crate::sections::layer_and_mask_information_section::layer::PsdLayer;
 use crate::sections::PsdCursor;
-use failure::Error;
+use crate::Error;
 use std::collections::HashMap;
 
 /// One of the possible additional layer block signatures

@@ -1,9 +1,8 @@
 use crate::psd_channel::IntoRgba;
 use crate::psd_channel::PsdChannelCompression;
-use crate::psd_channel::PsdChannelError;
 use crate::psd_channel::PsdChannelKind;
 use crate::sections::image_data_section::ChannelBytes;
-use failure::{Error, Fail};
+use crate::{ChannelError, Error};
 use std::collections::HashMap;
 
 /// Information about a layer in a PSD file.
@@ -35,17 +34,6 @@ pub struct PsdLayer {
     pub(crate) psd_width: u32,
     /// The height of the PSD
     pub(crate) psd_height: u32,
-}
-
-/// An error when working with a PsdLayer
-#[derive(Debug, Fail)]
-pub enum PsdLayerError {
-    #[fail(
-        display = r#"Could not combine Red, Green, Blue and Alpha.
-        This layer is missing channel: {:#?}"#,
-        channel
-    )]
-    MissingChannels { channel: PsdChannelKind },
 }
 
 impl PsdLayer {
@@ -89,13 +77,16 @@ impl PsdLayer {
     }
 
     /// Get the compression level for one of this layer's channels
-    pub fn compression(&self, channel: PsdChannelKind) -> Result<PsdChannelCompression, Error> {
+    pub fn compression(
+        &self,
+        channel: PsdChannelKind,
+    ) -> Result<PsdChannelCompression, ChannelError> {
         match self.channels.get(&channel) {
             Some(channel) => match channel {
                 ChannelBytes::RawData(_) => Ok(PsdChannelCompression::RawData),
                 ChannelBytes::RleCompressed(_) => Ok(PsdChannelCompression::RleCompressed),
             },
-            None => Err(PsdChannelError::ChannelNotFound { channel }.into()),
+            None => Err(ChannelError::NotFound(channel)),
         }
     }
 

@@ -1,8 +1,7 @@
 use crate::psd_channel::PsdChannelCompression;
-use crate::sections::file_header_section::PsdDepthError;
 use crate::sections::PsdCursor;
 use crate::PsdDepth;
-use failure::Error;
+use crate::{DepthError, Error};
 
 /// The ImageDataSection comes from the final section in the PSD that contains the pixel data
 /// of the final PSD image (the one that comes from combining all of the layers).
@@ -100,7 +99,7 @@ impl ImageDataSection {
 
                         (ChannelBytes::RawData(red), green, blue, alpha)
                     }
-                    _ => return Err(PsdDepthError::UnsupportedDepth.into()),
+                    _ => return Err(DepthError::UnsupportedDepth.into()),
                 }
             }
             // # [Adobe Docs](https://www.adobe.com/devnet-apps/photoshop/fileformatashtml/)

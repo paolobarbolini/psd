@@ -1,4 +1,4 @@
-use failure::{Error, Fail};
+use crate::{Error, HeaderError};
 use std::io::Cursor;
 
 /// The length of the entire file header section
@@ -59,10 +59,7 @@ impl<'a> MajorSections<'a> {
 
         // File header section must be 26 bytes long.
         if bytes.len() < FILE_HEADER_SECTION_LEN {
-            return Err(NotEnoughBytesError::FileHeader {
-                total_bytes: bytes.len(),
-            }
-            .into());
+            return Err(HeaderError::InvalidFileError.into());
         }
 
         // File Header Section
@@ -94,21 +91,6 @@ fn read_major_section_start_end(cursor: &mut PsdCursor) -> Result<(usize, usize)
     let end = cursor.position() as usize;
 
     Ok((start, end))
-}
-
-/// A section specified that it had more bytes than were provided.
-///
-/// For example, the FileHeaderSection requires 26 bytes, so if we only see
-/// 25 bytes we'll return an error.
-#[derive(Debug, Fail)]
-pub enum NotEnoughBytesError {
-    #[fail(
-        display = r#"Could not parse the file header section.
-    The file header section is comprised of the first 26 bytes (indices 0-25)
-    of a PSD file, but only {} total bytes were provided."#,
-        total_bytes
-    )]
-    FileHeader { total_bytes: usize },
 }
 
 /// A Cursor wrapping bytes from a PSD file.

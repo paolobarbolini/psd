@@ -1,6 +1,6 @@
 use crate::sections::image_data_section::ChannelBytes;
 use crate::sections::PsdCursor;
-use failure::{format_err, Error, Fail};
+use crate::{ChannelError, Error};
 
 pub trait IntoRgba {
     /// Given an index of a pixel in the current rectangle
@@ -263,13 +263,13 @@ pub enum PsdChannelCompression {
 
 impl PsdChannelCompression {
     /// Create a new PsdLayerChannelCompression
-    pub fn new(compression: u16) -> Result<PsdChannelCompression, Error> {
+    pub fn new(compression: u16) -> Result<PsdChannelCompression, ChannelError> {
         match compression {
             0 => Ok(PsdChannelCompression::RawData),
             1 => Ok(PsdChannelCompression::RleCompressed),
             2 => Ok(PsdChannelCompression::ZipWithoutPrediction),
             3 => Ok(PsdChannelCompression::ZipWithPrediction),
-            _ => Err(PsdChannelError::InvalidCompression { compression }.into()),
+            _ => Err(ChannelError::InvalidCompression(compression)),
         }
     }
 }
@@ -286,26 +286,9 @@ pub enum PsdChannelKind {
     RealUserSuppliedLayerMask = -3,
 }
 
-/// Represents an invalid channel
-#[derive(Debug, Fail)]
-pub enum PsdChannelError {
-    #[fail(
-        display = "{} is an invalid channel id, must be 0, 1, 2, -1, -2, or -3.",
-        channel_id
-    )]
-    InvalidChannel { channel_id: i16 },
-    #[fail(
-        display = "{} is an invalid layer channel compression. Must be 0, 1, 2 or 3",
-        compression
-    )]
-    InvalidCompression { compression: u16 },
-    #[fail(display = "Channel {:#?} not present", channel)]
-    ChannelNotFound { channel: PsdChannelKind },
-}
-
 impl PsdChannelKind {
     /// Create a new PsdLayerChannel
-    pub fn new(channel_id: i16) -> Result<PsdChannelKind, Error> {
+    pub fn new(channel_id: i16) -> Result<PsdChannelKind, ChannelError> {
         match channel_id {
             0 => Ok(PsdChannelKind::Red),
             1 => Ok(PsdChannelKind::Green),
@@ -313,7 +296,7 @@ impl PsdChannelKind {
             -1 => Ok(PsdChannelKind::TransparencyMask),
             -2 => Ok(PsdChannelKind::UserSuppliedLayerMask),
             -3 => Ok(PsdChannelKind::RealUserSuppliedLayerMask),
-            _ => Err(PsdChannelError::InvalidChannel { channel_id }.into()),
+            _ => Err(ChannelError::InvalidId(channel_id)),
         }
     }
 
@@ -321,13 +304,13 @@ impl PsdChannelKind {
     /// G -> 1
     /// B -> 2
     /// A -> 3
-    pub fn rgba_offset(self) -> Result<usize, Error> {
+    pub fn rgba_offset(self) -> Result<usize, ChannelError> {
         match self {
             PsdChannelKind::Red => Ok(0),
             PsdChannelKind::Green => Ok(1),
             PsdChannelKind::Blue => Ok(2),
             PsdChannelKind::TransparencyMask => Ok(3),
-            _ => Err(format_err!("{:#?} is not an RGBA channel", &self)),
+            _ => Err(ChannelError::InvalidKind(self)),
         }
     }
 }
