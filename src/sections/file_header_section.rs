@@ -51,7 +51,7 @@ impl FileHeaderSection {
 
         // File header section must be 26 bytes long
         if bytes.len() != 26 {
-            return Err(HeaderError::IncorrectLength(bytes.len()).into());
+            return Err(HeaderError::InvalidFileError.into());
         }
 
         // First four bytes must be '8BPS'

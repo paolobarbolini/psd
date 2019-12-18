@@ -46,7 +46,6 @@ impl From<DepthError> for Error {
 #[derive(Debug)]
 pub enum HeaderError {
     InvalidFileError,
-    IncorrectLength(usize),
     InvalidSignature,
     InvalidVersion,
     InvalidReserved,
@@ -59,7 +58,6 @@ impl error::Error for HeaderError {
     fn description(&self) -> &str {
         match *self {
             HeaderError::InvalidFileError => "invalid channel type",
-            HeaderError::IncorrectLength(_) => "invalid channel type",
             HeaderError::InvalidSignature => "invalid channel type",
             HeaderError::InvalidVersion => "invalid channel type",
             HeaderError::InvalidReserved => "invalid channel type",

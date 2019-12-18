@@ -119,57 +119,57 @@ impl<'a> PsdCursor<'a> {
     }
 
     /// Advance the cursor by count bytes and return those bytes
-    pub fn read(&mut self, count: u32) -> Result<&[u8], Error> {
+    pub fn read(&mut self, n: u32) -> Result<&[u8], HeaderError> {
         let start = self.cursor.position() as usize;
-        let end = start + count as usize;
-        let bytes = &self.cursor.get_ref()[start..end];
-
+        let end = start + n as usize;
+        let bytes =  &self.cursor.get_ref().get(start..end).ok_or_else(|| HeaderError::InvalidFileError)?;
+        
         self.cursor.set_position(end as u64);
 
         Ok(bytes)
     }
 
     /// Peek at the next four bytes
-    pub fn peek_4(&mut self) -> Result<&[u8], Error> {
+    pub fn peek_4(&mut self) -> Result<&[u8], HeaderError> {
         self.peek(4)
     }
 
     /// Get the next n bytes without moving the cursor
-    fn peek(&mut self, n: u8) -> Result<&[u8], Error> {
+    fn peek(&mut self, n: u32) -> Result<&[u8], HeaderError> {
         let start = self.cursor.position() as usize;
         let end = start + n as usize;
-        let bytes = &self.cursor.get_ref()[start..end];
+        let bytes = &self.cursor.get_ref().get(start..end).ok_or_else(|| HeaderError::InvalidFileError)?;
 
         Ok(&bytes)
     }
 
     /// Read 1 byte
-    pub fn read_1(&mut self) -> Result<&[u8], Error> {
+    pub fn read_1(&mut self) -> Result<&[u8], HeaderError> {
         self.read(1)
     }
 
     /// Read 2 bytes
-    pub fn read_2(&mut self) -> Result<&[u8], Error> {
+    pub fn read_2(&mut self) -> Result<&[u8], HeaderError> {
         self.read(2)
     }
 
     /// Read 4 bytes
-    pub fn read_4(&mut self) -> Result<&[u8], Error> {
+    pub fn read_4(&mut self) -> Result<&[u8], HeaderError> {
         self.read(4)
     }
 
     /// Read 6 bytes
-    pub fn read_6(&mut self) -> Result<&[u8], Error> {
+    pub fn read_6(&mut self) -> Result<&[u8], HeaderError> {
         self.read(6)
     }
 
     /// Read 1 byte as a u8
-    pub fn read_u8(&mut self) -> Result<u8, Error> {
+    pub fn read_u8(&mut self) -> Result<u8, HeaderError> {
         Ok(self.read_1()?[0])
     }
 
     /// Read 2 bytes as a u16
-    pub fn read_u16(&mut self) -> Result<u16, Error> {
+    pub fn read_u16(&mut self) -> Result<u16, HeaderError> {
         let bytes = self.read_2()?;
 
         let mut array = [0; 2];
@@ -179,7 +179,7 @@ impl<'a> PsdCursor<'a> {
     }
 
     /// Read 4 bytes as a u32
-    pub fn read_u32(&mut self) -> Result<u32, Error> {
+    pub fn read_u32(&mut self) -> Result<u32, HeaderError> {
         let bytes = self.read_4()?;
 
         let mut array = [0; 4];
@@ -189,7 +189,7 @@ impl<'a> PsdCursor<'a> {
     }
 
     /// Read 1 byte as a i8
-    pub fn read_i8(&mut self) -> Result<i8, Error> {
+    pub fn read_i8(&mut self) -> Result<i8, HeaderError> {
         let bytes = self.read_1()?;
 
         let mut array = [0; 1];
@@ -199,7 +199,7 @@ impl<'a> PsdCursor<'a> {
     }
 
     /// Read 2 bytes as a i16
-    pub fn read_i16(&mut self) -> Result<i16, Error> {
+    pub fn read_i16(&mut self) -> Result<i16, HeaderError> {
         let bytes = self.read_2()?;
 
         let mut array = [0; 2];
@@ -209,7 +209,7 @@ impl<'a> PsdCursor<'a> {
     }
 
     /// Read 4 bytes as a i32
-    pub fn read_i32(&mut self) -> Result<i32, Error> {
+    pub fn read_i32(&mut self) -> Result<i32, HeaderError> {
         let bytes = self.read_4()?;
 
         let mut array = [0; 4];
